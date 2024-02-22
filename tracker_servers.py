@@ -5,7 +5,7 @@ import socket
 import threading
 import requests
 from bs4 import BeautifulSoup
-
+import datetime
 import urllib.parse
 
 global tracker_list, accessible_list, timeout, _thread_num
@@ -66,18 +66,35 @@ def parse_tracker_list():
     """
     print("获取tracker列表")
     global tracker_list
-    tracker_url = (
-        "https://jsdelivr.b-cdn.net/gh/XIU2/TrackersListCollection/best.txt"
-    )
-    response = requests.get(tracker_url)
-    site_url = "https://www.u3c3.club/"
+    print("获取TrackersListCollection trackers")
+    # 初始Tracker URL
+    tracker_url = "https://js.cdn.haah.net/gh/XIU2/TrackersListCollection/best.txt"
+    backup_tracker_url = "https://ghproxy.net/https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt"  # 替换为你的备用URL
+
+    try:
+        response = requests.get(tracker_url)
+        response.raise_for_status()  # 如果响应状态不是200，将引发HTTPError异常
+    except requests.exceptions.RequestException as e:
+        print(f"{tracker_url}: 访问出错，使用备用URL")
+        tracker_url = backup_tracker_url  # 使用备用URL
+
+    try:
+        response = requests.get(tracker_url)
+        response.raise_for_status()  # 确保备用URL的响应状态也是200
+        tracker_list = response.text.strip().split("\n\n")
+    except requests.exceptions.RequestException as e:
+        print(f"备用URL：{tracker_url}  访问出错")
+        # 在这里可以进一步处理错误，例如抛出异常、记录日志或提供默认值等
+
+    print(f"\t TrackersListCollection 获得trackers：{len(tracker_list)}个。")
+
+    url = "https://www.u3c3.club/"
     #u3c3 trackers
     print("获取u3c3 trackers")
-    tracker_links_u3c3 = get_magnet_links(site_url)
+    tracker_links_u3c3 = get_magnet_links(url)
     print(f"\t u3c3 获得trackers：{len(tracker_links_u3c3)}个。")
-    print("获取TrackersListCollection trackers")
-    tracker_list = response.text.strip().split("\n\n")
-    print(f"\t TrackersListCollection 获得trackers：{len(tracker_list)}个。")
+
+
     tracker_list.extend(tracker_links_u3c3)
 
 
@@ -131,6 +148,7 @@ def main():
     # 获取当前脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     fileName = os.path.join(script_dir, "best.txt")
+    logName = os.path.join(script_dir, "log.txt")
 
     try:
         os.remove(fileName)
@@ -143,6 +161,13 @@ def main():
         with open(fileName, "w") as file:
             file.writelines(accessible_list)
         print("写入源文件。")
+        with open(logName, "w") as file:
+            # 获取当前时间
+            now = datetime.datetime.now()
+
+            # 格式化当前时间（例如，格式为“年-月-日 时:分:秒”）
+            formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
+            file.write(f"{formatted_time} :测试获得{len(accessible_list)}个可访问的tracker。")
     except Exception as e:
         print(f"写入失败:{e}")
 
