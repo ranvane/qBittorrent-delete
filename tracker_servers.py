@@ -161,7 +161,7 @@ def main():
         with open(fileName, "w") as file:
             file.writelines(accessible_list)
         print("写入源文件。")
-        with open(logName, "w") as file:
+        with open(logName, "w+") as file:
             # 获取当前时间
             now = datetime.datetime.now()
 
