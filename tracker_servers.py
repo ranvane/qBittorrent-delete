@@ -91,6 +91,21 @@ def parse_tracker_list():
 
     tracker_list.extend(tracker_links_u3c3)
 
+    url = "https://u9a9.one/"
+    # u9a9 trackers
+    print("u9c9 trackers")
+    tracker_links_u9c9 = get_magnet_links(url)
+    print(f"\t u9c9 获得trackers：{len(tracker_links_u9c9)}个。")
+
+    tracker_list.extend(tracker_links_u9c9)
+
+    # 将tracker_list转换为集合，以去除重复项
+    tracker_set = set(tracker_list)
+    # 然后将结果转回列表（注意，此时列表元素的顺序已经改变）
+    tracker_list = list(tracker_set)
+
+    print(f"共获得trackers：{len(tracker_list)}个。")
+
 
 def test_tracker(tracker_url):
     """
