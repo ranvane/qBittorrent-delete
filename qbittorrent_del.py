@@ -57,17 +57,20 @@ file_extensions = [
 
 
 # 重命名字符串列表
+# * 零次或多次 + 至少一次 ？ 最多匹配一次
+
 replace_list = [
     r"[a-z0-9]{3,9}" + domain_suffix_pattern + r"-?",
     r"[a-z0-9]{3,9}" + domain_suffix_pattern + r"@?",
     r"[a-z0-9]{3,9}" + domain_suffix_pattern,
     r"\d{1,4}_",
-    r"(同城美女.*)\d{1,4}",
+    r"(同城美女.+)\d{1,4}",
     r"【.*】",
 ]
 
 # 取消下载正则表达式字符串
 cancel_download_list = [
+    domain_suffix_pattern + "\.mp4",
     r"_91.*",
     r"_51.*",
     r"_麻豆传媒.*",
@@ -100,7 +103,7 @@ cancel_download_list = [
     r"人间尤物.mp4",
     r"注册.*",
     r".*fun.*mp4",
-    r"《.*》.*",
+    r"《★.*》.*",
     r"社.*区.*报.mp4",
     r" H.*漫.*画.",
     r"凤凰娱乐.*mp4",
@@ -108,7 +111,7 @@ cancel_download_list = [
     r"-重磅核弹国产.*mp4|avi",
     r"最新地址.*",
     r"最新地址.*mp4",
-    r"凤凰娱乐.*mp4",
+    r"星空天使.*",
     r"约炮平台" + image_suffix_pattern,
     r"入有.*" + image_suffix_pattern,
     r"同城.*" + image_suffix_pattern,
@@ -151,6 +154,8 @@ def get_top_level_folder(path):
 # 获取文件的父文件夹路径和文件名
 def get_parent_folder_and_filename(filepath):
     parent_folder, filename = os.path.split(filepath)
+    parent_folder = parent_folder.replace(" ", "")
+    filename = filename.replace(" ", "")
     return parent_folder, filename
 
 
@@ -168,14 +173,16 @@ def rename_folders(client, replace_str_list):
 
             if file.priority > 0:  # 只替换优先级大于0的文件
                 for regex in regex_list:
+
                     new_folder_path = re.sub(regex, "", parent_folder)
                     new_folder_path = new_folder_path.strip()
                     try:
-                        client.torrents_rename_folder(
-                            torrent_hash=torrent.hash,
-                            old_path=parent_folder,
-                            new_path=new_folder_path,
-                        )
+                        if new_folder_path != parent_folder:
+                            client.torrents_rename_folder(
+                                torrent_hash=torrent.hash,
+                                old_path=parent_folder,
+                                new_path=new_folder_path,
+                            )
                     except Exception as e:
                         print(f"重命名文件夹失败：{e}")
 
@@ -196,16 +203,21 @@ def rename_files(client, replace_str_list):
             if file.priority > 0:  # 只替换优先级大于0的文件
                 for regex in regex_list:
                     new_name = re.sub(regex, "", filename)
+                    print(
+                        f"重命名包含指定字符串的文件：{file.name} {file.priority} {regex.pattern}"
+                    )
                     new_name = new_name.strip()
+                    # 组合新的文件名和父文件夹路径
+                    new_path = os.path.join(parent_folder, new_name)
                     try:
-                        # 组合新的文件名和父文件夹路径
-                        new_path = os.path.join(parent_folder, new_name)
 
-                        client.torrents_rename_file(
-                            torrent_hash=torrent.hash,
-                            old_path=file.name,
-                            new_path=new_path,
-                        )
+                        if new_path != file.name:
+
+                            client.torrents_rename_file(
+                                torrent_hash=torrent.hash,
+                                old_path=file.name,
+                                new_path=new_path,
+                            )
                     except Exception as e:
                         print(f"重命名文件失败：{e}")
 
@@ -244,7 +256,7 @@ def cancel_downloading_matching_regex(client, cancel_download_list):
             if file.priority > 0:  # 只取消优先级大于0的文件
                 for regex in regex_list:
                     if regex.search(file.name):
-                        print(f"取消下载：{file.name} {file.priority}")
+                        print(f"取消下载：{file.name} {file.priority} {regex.pattern}")
                         client.torrents_file_priority(torrent.hash, file.index, 0)
                         time.sleep(0.5)
 
@@ -286,3 +298,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
