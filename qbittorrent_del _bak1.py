@@ -62,6 +62,7 @@ file_extensions = [
 replace_list = [
     r"[a-z0-9]{2,10}" + domain_suffix_pattern,
     r"^\d{1,5}\.",
+    r"^\d{1,5} ",
     r"^\d{1,5}",
     r"(同城美女.+)\d{1,4}",
     r"【.*】",
@@ -75,12 +76,10 @@ replace_list = [
     r"網紅原創--",
     r"-搶先發布-",
 ]
-
 # 取消下载正则表达式字符串
 cancel_download_list = [
     domain_suffix_pattern + "\.mp4",
     r"_91.*",
-    r"爭霸江山美人.*",
     r"度灰.*",
     r"帝王恩宠.*",
     r".*H漫.*",
@@ -89,7 +88,6 @@ cancel_download_list = [
     r"三国志.*",
     r"草榴.*",
     r"萌妹屋.*",
-    r"极乐禁地.*",
     r"金三角.*",
     r"老王社区.*",
     r"_乱伦社区.*",
@@ -118,6 +116,7 @@ cancel_download_list = [
     r"内涵AV.*",
     r"汇聚全球.*",
     r"缅北禁地.*",
+    r"极乐禁地.*",
     r"_?暗网解密.*",
     r"_欲漫涩.*",
     r"视频资源.*",
@@ -201,27 +200,10 @@ def disconnect_from_qbittorrent(client):
         print(f"断开与 qBittorrent 客户端的连接失败：{e}")
 
 
-def extract_chinese_characters(text):
-    """
-    提取字符串中的所有中文字符。
-
-    :param text: 输入的字符串
-    :return: 包含所有中文字符的列表
-    """
-    pattern = re.compile(r"[\u4e00-\u9fa5]")
-    chinese_chars = pattern.findall(text)
-    return "".join(chinese_chars)
-
-
 # 重命名包含指定字符串的文件夹
 def rename_folders(client, replace_str_list):
     """
-    重命名包含指定字符串的文件夹，对于bt来说，只替换最顶层的文件夹
-
-    参数：
-    client（qbittorrentapi.Client）：与qBittorrent客户端的连接对象，用于获取种子信息和执行操作。
-    replace_str_list（list of str）：包含要替换的字符串的列表，或者是用于匹配文件夹名称的正则表达式字符串列表。
-
+    重命名包含指定字符串的文件夹,对于bt来说，只替换最顶层的文件夹
     """
     print("重命名包含指定字符串的文件夹...")
     # 使用列表推导式批量编译这些正则表达式
@@ -255,20 +237,6 @@ def rename_folders(client, replace_str_list):
 def rename_files(client, replace_str_list):
     """
     重命名包含指定字符串的文件
-
-    这个函数会遍历给定的qBittorrent客户端中的所有种子文件，并检查每个种子文件中的文件。
-    对于每个文件，如果文件名包含在replace_str_list中的任何字符串，函数将会替换这些字符串。
-    使用正则表达式来匹配字符串，并且忽略大小写。
-
-    参数:
-    client: qBittorrent客户端对象，用于获取种子信息和执行操作。
-    replace_str_list: 一个正则表达式字符串列表，用于匹配文件名中的字符串。
-
-    返回值:
-    无
-
-    异常:
-    如果在重命名文件过程中发生错误，它将会被捕获并作为异常抛出。
     """
     print("重命名包含指定字符串的文件...")
 
@@ -309,12 +277,7 @@ def rename_files(client, replace_str_list):
 
 def cancel_downloading_files_with_extension(client, file_extensions):
     """
-
-    这个函数用于取消下载指定后缀名的文件，其作用是遍历qBittorrent客户端中的所有种子文件，并检查每个文件的后缀名是否在给定的文件扩展名列表中。如果找到匹配的文件，并且文件的优先级大于0，函数将使用qBittorrent客户端提供的API调用来取消该文件的下载，设置其优先级为0。
-
-    参数：
-    client（qbittorrentapi.Client）：与qBittorrent客户端的连接对象，用于获取种子信息和执行操作。
-    file_extensions（list of str）：包含要取消下载的文件扩展名的列表。例如，[".mp4", ".mkv"]将取消下载所有.mp4和.mkv文件。
+    取消下载指定后缀名的文件
     """
     print("取消下载指定后缀名的文件...")
     for torrent in client.torrents.info():
@@ -338,19 +301,7 @@ def cancel_downloading_files_with_extension(client, file_extensions):
 
 
 def cancel_downloading_matching_regex(client, cancel_download_list):
-    """
-    取消下载符合正则表达式的文件和文件夹
-
-    参数:
-    client: qBittorrent客户端对象，用于获取种子信息和执行操作。
-    cancel_download_list: 正则表达式字符串列表，用于匹配要取消下载的文件或文件夹名称。
-
-    返回值:
-    无
-
-    异常:
-    如果在取消下载过程中发生错误，将抛出异常。
-    """
+    """取消下载符合正则表达式的文件和文件夹"""
     print("取消下载符合正则表达式的文件和文件夹...")
     # 使用列表推导式批量编译这些正则表达式
     regex_list = [re.compile(regex, re.IGNORECASE) for regex in cancel_download_list]
@@ -369,44 +320,22 @@ def cancel_downloading_matching_regex(client, cancel_download_list):
 def rename_torrent_name(client):
     """
     重命名种子名
-    此函数的目的是遍历qbittorrent客户端中的所有种子，找到每个种子中优先级大于0的文件，
-    并以该文件的文件名（不包括扩展名）作为新的种子名。如果新种子名与原种子名不同，则进行重命名操作。
     """
     print("重命名种子名...")
     for torrent in client.torrents.info():
         tmp_name = ""
-        torrent_name = torrent.name
         for file in torrent.files:
             if file.priority > 0:  # 优先级大于0的文件
                 p = Path(file.name)
                 tmp_name = p.parts[0]
 
-        if torrent_name != tmp_name:
-            tmp_name_chinese_characters = extract_chinese_characters(tmp_name)
-            torrent_name_chinese_characters = extract_chinese_characters(torrent_name)
+        if torrent.name != tmp_name:
 
-            # 如果 根文件夹的中文字符数大于种子名中文字符数，则替换种子名
-            if len(tmp_name_chinese_characters) > len(torrent_name_chinese_characters):
-
-                try:
-                    print(f"重命名种子：{torrent.name} -> {tmp_name}")
-                    client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                except Exception as e:
-                    print(f"重命名种子：{torrent.name} -> {tmp_name} 失败")
-
-            elif len(tmp_name_chinese_characters) < len(
-                torrent_name_chinese_characters
-            ):
-                # 如果 根文件夹的中文字符数小于种子名中文字符数，则种子名使用种子名替换根文件名
-
-                try:
-                    client.torrents_rename_folder(
-                        torrent_hash=torrent.hash,
-                        old_path=p.parts[0],
-                        new_path=torrent_name_chinese_characters,
-                    )
-                except Exception as e:
-                    print(f"重命名文件夹失败：{e}")
+            try:
+                print(f"重命名种子：{torrent.name} -> {tmp_name}")
+                client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
+            except Exception as e:
+                print(f"重命名种子：{torrent.name} -> {tmp_name} 失败")
 
 
 def main():
