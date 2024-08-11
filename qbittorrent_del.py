@@ -464,18 +464,20 @@ def gen_del_bash():
     for str in cancel_download_list:
         _str = f"find {completed_dir} -type f -name '{str}'"
         _str = _str.replace(".*", "*")
-        bash_list.append(_str + " -exec rm -rf {} \;")
+        bash_list.append(_str + r" -exec rm -rf {} \;")
 
         _str = f"find {completed_dir} -type d -name '{str}'"
         _str = _str.replace(".*", "*")
-        bash_list.append(_str + " -exec rm -rf {} \;")
+        bash_list.append(_str + r" -exec rm -rf {} \;")
 
     for extension in file_extensions:
 
         _str = f"find {completed_dir} -type f -name '*{extension[1:]}'"
-        bash_list.append(_str + " -exec rm -rf {} \;")
+        bash_list.append(_str + r" -exec rm -rf {} \;")
 
     with open("qb_del.sh", "w") as file:
+
+        file.write('#!/bin/bash' + "\n\n")
         for item in bash_list:
             try:
                 file.write(item + "\n")
