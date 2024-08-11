@@ -5,6 +5,8 @@ import time
 import re
 from pathlib import Path
 
+completed_dir = "/mnt/u_disk/downloads/completed/"
+
 # 定义图片后缀的正则表达式片段
 image_suffix_pattern = (
     r"\.(?:"
@@ -78,7 +80,7 @@ replace_list = [
 
 # 取消下载正则表达式字符串
 cancel_download_list = [
-    domain_suffix_pattern + "\.mp4",
+    domain_suffix_pattern + r"\.mp4",
     r"_91.*",
     r"爭霸江山美人.*",
     r"度灰.*",
@@ -86,11 +88,44 @@ cancel_download_list = [
     r".*H漫.*",
     r".*H動漫.mp4",
     r"AI色色.*",
+    r"工作室.*",
     r"三国志.*",
+    r"私房猛药.*",
+    r"❤麻豆传媒映画❤.*",
+    r"猎艳传奇.*",
+    r"成人抖音.*",
+    r"全国外围.*",
+    r"国产精品资源.*",
+    r".mp4.jpg",
     r"草榴.*",
     r"萌妹屋.*",
     r"极乐禁地.*",
     r"金三角.*",
+    r"二维码.*",
+    r"扫码.*",
+    r".*品茶" + image_suffix_pattern,
+    r".*微密圈" + image_suffix_pattern,
+    r".*蚂蚁翻墙" + image_suffix_pattern,
+    r".*记录美好性生活" + image_suffix_pattern,
+    r".*抖阴.*" + image_suffix_pattern,
+    r".*交友" + image_suffix_pattern,
+    r".*猪仔生活" + image_suffix_pattern,
+    r".*本色" + image_suffix_pattern,
+    r".*好色" + image_suffix_pattern,
+    r".*不断更" + image_suffix_pattern,
+    r".*世界" + image_suffix_pattern,
+    r".*同步更新" + image_suffix_pattern,
+    r".*感兴趣的.*" + image_suffix_pattern,
+    r"国产资源库.*",
+    r"全网解密.*",
+    r"_图灵传媒.*",
+    r"重新定义.*",
+    r"二维码.*",
+    r"新番更不停.*",
+    r"献妻虎狼熟女.*",
+    r"聚集中心.*",
+    r"百万部.*",
+    r"来自糖心.*",
     r"老王社区.*",
     r"_乱伦社区.*",
     r"妻友.*",
@@ -133,7 +168,7 @@ cancel_download_list = [
     r"BETANO.*",
     r"__哔咔.*",
     r"AI处理技术.*",
-    r"2048(QR)|(社区)|(社區).*",
+    r"2048\(QR\)(社区|社區).*",
     r"美女直播.*(mp4|jpg|png)",
     r"直播.*推荐.*mp4",
     r"逼哩.*",
@@ -424,5 +459,30 @@ def main():
             disconnect_from_qbittorrent(client)
 
 
+def gen_del_bash():
+    bash_list = []
+    for str in cancel_download_list:
+        _str = f"find {completed_dir} -type f -name '{str}'"
+        _str = _str.replace(".*", "*")
+        bash_list.append(_str + " -exec rm -rf {} \;")
+
+        _str = f"find {completed_dir} -type d -name '{str}'"
+        _str = _str.replace(".*", "*")
+        bash_list.append(_str + " -exec rm -rf {} \;")
+
+    for extension in file_extensions:
+
+        _str = f"find {completed_dir} -type f -name '*{extension[1:]}'"
+        bash_list.append(_str + " -exec rm -rf {} \;")
+
+    with open("qb_del.sh", "w") as file:
+        for item in bash_list:
+            try:
+                file.write(item + "\n")
+            except Exception as e:
+                print(item)
+
+
 if __name__ == "__main__":
     main()
+    gen_del_bash()
