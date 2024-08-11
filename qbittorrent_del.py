@@ -486,5 +486,8 @@ def gen_del_bash():
 
 
 if __name__ == "__main__":
+    # * 0-23 * * * /usr/local/bin/python3.9  /opt/qbittorrentee/qbittorrent_del.py
+    # 0 */1 * * * sh /opt/qbittorrentee/qb_del.sh
+
     main()
     gen_del_bash()
