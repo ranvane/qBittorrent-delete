@@ -1,7 +1,7 @@
 #!/bin/bash
-
+completed_dir="/mnt/u_disk/downloads/completed/"  # 注意这里等号两边不能有空格
 # 去掉标点，
-for item in *; do
+for item in "$completed_dir"/*; do
     if [[ $item =~ ^，.* ]]; then
         new_item=${item:1}
         mv "$item" "$new_item"
@@ -9,31 +9,33 @@ for item in *; do
 done
 
 # 去掉标点,
-for item in *; do
+for item in "$completed_dir"/*; do
     if [[ $item =~ ^,.* ]]; then
         new_item=${item:1}
         mv "$item" "$new_item"
     fi
 done
+
 # 去掉@
-for item in *; do
+for item in "$completed_dir"/*; do
     if [[ $item =~ ^@.* ]]; then
         new_item=${item:1}
         mv "$item" "$new_item"
     fi
 done
+
 # 去掉空格
-for item in *; do
-    if [[ $item =~ ^ .* ]]; then
+for item in "$completed_dir"/*; do
+    if [[ $item =~ ^[[:space:]].* ]]; then
         new_item=${item:1}
         mv "$item" "$new_item"
     fi
 done
 
 # 去掉xyz
-for item in *; do
+for item in "$completed_dir"/*; do
     if [[ $item =~ ^xyz.* ]]; then
-        new_item=${item:1}
+        new_item=${item:3}
         mv "$item" "$new_item"
     fi
 done
@@ -49,6 +51,7 @@ process_item() {
     fi
 }
 
-for item in *; do
+for item in "$completed_dir"/*; do
     process_item "$item"
 done
+
