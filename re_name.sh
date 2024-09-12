@@ -1,10 +1,11 @@
 #!/bin/bash
 # 定义要处理的文件夹路径
-completed_dir="/mnt/u_disk/downloads/completed/"
+completed_dir="/vol1/1000/download/complete/"
 # 定义要去掉的开头字符串数组
 strings_to_remove=("@" "xyz" "，" "," " Chinese homemade video")
 # 定义域名主名称的正则表达式
-domain_regex="^([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?!\.(?:jpg|jpeg|png|gif|bmp|svg|webp|tiff|ico)[^.]*$)"
+domain_regex='^([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?!\.(?:jpg|jpeg|png|gif|bmp|svg|webp|tiff|ico)[^.]*$)'
+
 
 # 定义处理文件或文件夹的函数
 function process_item() {
