@@ -1,1 +1,3 @@
 *.txt
+/qb-web
+/__pycache__
