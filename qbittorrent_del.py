@@ -4,14 +4,18 @@ import os
 import time
 import re
 from pathlib import Path
-import logging
+from loguru import logger
 
-logger = logging.getLogger(__name__)
 
-from regex_pattern import cancel_download_list,replace_list,file_extensions,domain_suffix_pattern,image_suffix_pattern
+from regex_pattern import (
+    cancel_download_list,
+    replace_list,
+    file_extensions,
+    domain_suffix_pattern,
+    image_suffix_pattern,
+)
 
 completed_dir = "/vol1/1000/download/complete/"
-
 
 
 # 连接到 qBittorrent 客户端
@@ -49,7 +53,7 @@ def extract_chinese_characters(text):
 
 
 # 重命名包含指定字符串的文件夹
-def rename_folders(client, replace_str_list):
+def replace_folders_name(client, replace_str_list):
     """
     重命名包含指定字符串的文件夹，对于bt来说，只替换最顶层的文件夹
 
@@ -66,7 +70,7 @@ def rename_folders(client, replace_str_list):
             # 创建Path实例
             p = Path(file.name)
 
-            # 获取各部分
+            # 提取文件名的最顶层文件夹部分
             top_folder = p.parts[0]
 
             for regex in regex_list:
@@ -75,7 +79,7 @@ def rename_folders(client, replace_str_list):
                 new_folder_path = new_folder_path.strip()
 
                 try:
-                    if new_folder_path != p.parts[0]:
+                    if new_folder_path != p.parts[0] and len(new_folder_path) > 0:
 
                         client.torrents_rename_folder(
                             torrent_hash=torrent.hash,
@@ -84,7 +88,9 @@ def rename_folders(client, replace_str_list):
                         )
                         time.sleep(0.5)
                 except Exception as e:
-                    logger.info(f"重命名文件夹失败：{e}")
+                    logger.error(
+                        f"重命名文件夹失败：\n {torrent.name}  \n`{p.parts[0]}`->`{new_folder_path}` \n{e}"
+                    )
 
 
 # 重命名包含指定字符串的文件
@@ -140,7 +146,9 @@ def rename_files(client, replace_str_list):
                             )
                             time.sleep(0.5)
                     except Exception as e:
-                        logger.info(f"重命名文件失败：{e}")
+                        logger.info(
+                            f"重命名文件失败：{e} \n{torrent.name} :{regex.pattern}\n{file.name}:{new_path}"
+                        )
 
 
 def cancel_downloading_files_with_extension(client, file_extensions):
@@ -170,7 +178,7 @@ def cancel_downloading_files_with_extension(client, file_extensions):
                         client.torrents_file_priority(torrent.hash, file.index, 0)
                         time.sleep(0.5)
                     except Exception as e:
-                        logger.info(f"取消下载：{file.name} 失败！")
+                        logger.info(f"取消下载：{file.name} 失败！{e} ")
 
 
 def cancel_downloading_matching_regex(client, cancel_download_list):
@@ -197,9 +205,11 @@ def cancel_downloading_matching_regex(client, cancel_download_list):
             if file.priority > 0:  # 只取消优先级大于0的文件
                 for regex in regex_list:
                     if regex.search(_name):
-                        logger.info(f"取消下载：{file.name} {file.priority} {regex.pattern}")
+                        logger.info(
+                            f"取消下载：{file.name} {file.priority} {regex.pattern}"
+                        )
                         client.torrents_file_priority(torrent.hash, file.index, 0)
-                        time.sleep(0.5)
+                        time.sleep(0.1)
 
 
 def rename_torrent_name(client):
@@ -245,7 +255,9 @@ def rename_torrent_name(client):
                     time.sleep(0.5)
                 except Exception as e:
                     # logger.info(f"重命名文件夹失败：{e}")
-                    logger.info(f"种子{torrent_name}重命名:{p.parts[0]} -> {torrent_name_chinese_characters} 失败")
+                    logger.info(
+                        f"种子{torrent_name}重命名:{p.parts[0]} -> {torrent_name_chinese_characters} 失败"
+                    )
 
 
 def main():
@@ -254,11 +266,12 @@ def main():
     if client:
         try:
 
-            rename_folders(client, replace_list)
-            # cancel_downloading_files_with_extension(client, file_extensions)
-            # cancel_downloading_matching_regex(client, cancel_download_list)
-            rename_files(client, replace_list)
+            cancel_downloading_files_with_extension(client, file_extensions)
+            cancel_downloading_matching_regex(client, cancel_download_list)
+            replace_folders_name(client, replace_list)
             rename_torrent_name(client)
+            # rename_files(client, replace_list)
+
         finally:
             disconnect_from_qbittorrent(client)
 
@@ -281,7 +294,7 @@ def gen_del_bash():
 
     with open("qb_del.sh", "w") as file:
 
-        file.write('#!/bin/bash' + "\n\n")
+        file.write("#!/bin/bash" + "\n\n")
         for item in bash_list:
             try:
                 file.write(item + "\n")
