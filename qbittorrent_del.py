@@ -232,17 +232,27 @@ def rename_torrent_name(client):
             torrent_name_chinese_characters = extract_chinese_characters(torrent_name)
 
             # 如果 根文件夹的中文字符数大于种子名中文字符数，则替换种子名
-            if len(tmp_name_chinese_characters) > len(torrent_name_chinese_characters):
+            if (
+                len(tmp_name_chinese_characters) > len(torrent_name_chinese_characters)
+                and len(tmp_name_chinese_characters) > 0
+            ):
 
                 try:
-                    logger.info(f"重命名种子：{torrent.name} -> {tmp_name}")
-                    client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
+                    logger.info(
+                        f"重命名种子：{torrent.name} -> {tmp_name_chinese_characters}"
+                    )
+                    client.torrents_rename(
+                        torrent.hash, new_torrent_name=tmp_name_chinese_characters
+                    )
                     time.sleep(0.5)
                 except Exception as e:
-                    logger.info(f"重命名种子:{torrent.name} -> {tmp_name} 失败")
+                    logger.info(
+                        f"重命名种子:{torrent.name} -> {tmp_name_chinese_characters} 失败:{e}"
+                    )
 
-            elif len(tmp_name_chinese_characters) < len(
-                torrent_name_chinese_characters
+            elif (
+                len(tmp_name_chinese_characters) < len(torrent_name_chinese_characters)
+                and len(torrent_name_chinese_characters) > 0
             ):
                 # 如果 根文件夹的中文字符数小于种子名中文字符数，则种子名使用种子名替换根文件名
 

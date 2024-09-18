@@ -72,12 +72,16 @@ replace_list = [
     r"| 國內原創 - 我为人人",
     r"⚫️",
     r"2048cc-",
+    r"【U6A6.LA】",
+    r"新片速遞",
+    r"國產網紅全系列",
 ]
 
 # 取消下载正则表达式字符串
 cancel_download_list = [
     domain_suffix_pattern + r"\.mp4",
     r"_91.*",
+    r"微密圈.*",
     r"全球最大.*",
     r"片库.*",
     r".*技术一流.png",
@@ -92,7 +96,7 @@ cancel_download_list = [
     r".*cc\.mp4",
     r"二次元.*",
     r"鬼父猥亵.*",
-    # r"",
+    r"乱伦社区.jpg",
     r"爭霸江山美人.*",
     r"度灰.*",
     r"帝王恩宠.*",
