@@ -55,8 +55,7 @@ file_extensions = [
 # * 零次或多次 + 至少一次 ？ 最多匹配一次
 
 replace_list = [
-    r"[a-z0-9]{2,10}" + domain_suffix_pattern,
-    r"^\d{1,5}\.",
+    r"^\d{1,6}" + domain_suffix_pattern,
     # r"^\d{1,5}",
     r"(同城美女.+)\d{1,4}",
     r"【.*】",
@@ -69,7 +68,7 @@ replace_list = [
     r"^=",
     r"網紅原創--",
     r"-搶先發布-",
-    r"| 國內原創 - 我为人人",
+    r"\| 國內原創 - 我为人人",
     r"⚫️",
     r"2048cc-",
     r"【U6A6.LA】",

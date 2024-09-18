@@ -113,42 +113,55 @@ def rename_files(client, replace_str_list):
     如果在重命名文件过程中发生错误，它将会被捕获并作为异常抛出。
     """
     logger.info("重命名包含指定字符串的文件...")
-
+    # 组合新的文件名和父文件夹路径
+    separator = "/"  # 指定的连接字符串
     # 使用列表推导式批量编译这些正则表达式
     regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_str_list]
     for torrent in client.torrents.info():
         for file in torrent.files:
 
             p = Path(file.name)
-            filename = p.name
 
             if (
                 file.priority > 0 and len(p.suffix) > 0
             ):  # 只替换优先级大于0的文件和有后缀名的文件
                 for regex in regex_list:
-
-                    new_name = re.sub(regex, "", filename).replace(" ", "").strip()
+                    file_path = file.name.split(r"/")
+                    filename = file_path[-1]
                     # logger.info(
-                    #     f"重命名包含指定字符串的文件：{filename} {new_name} {regex.pattern}"
+                    #     f"{torrent.name}\n文件路径：{file_path},\n文件名：{filename},\n后缀名：{p.suffix}"
                     # )
+                    if re.search(regex, filename):
 
-                    # 组合新的文件名和父文件夹路径
-                    new_path = p.parent / new_name
+                        new_name = re.sub(regex, "", filename).strip()
 
-                    try:
+                        new_path = separator.join(file_path[:-1]) + separator + new_name
+                        # new_path = os.path.join(*file_path[:-1], new_name)
 
-                        if new_path != file.name:
+                        # logger.info(
+                        #     f"重命名包含指定字符串的文件：\n\t原文件名：{filename}\n\t新文件名：{new_name} \n\t{regex.pattern}"
+                        # )
+                        # logger.info(
+                        #     f"\n{torrent.name}\n\t新文件路径：{new_path}，\n\t新文件名：{new_name}\n\t{regex.pattern}"
+                        # )
 
-                            client.torrents_rename_file(
-                                torrent_hash=torrent.hash,
-                                old_path=file.name,
-                                new_path=new_path,
+                        try:
+
+                            if new_name != filename:
+
+                                client.torrents_rename_file(
+                                    torrent_hash=torrent.hash,
+                                    old_path=file.name,
+                                    new_path=new_path,
+                                )
+                                # logger.info(
+                                #     f"重命名文件成功：\n\t{torrent.name} :\n\t{file.name}\n\t{new_path}"
+                                # )
+                                time.sleep(0.5)
+                        except Exception as e:
+                            logger.info(
+                                f"重命名文件失败：{e} \n{torrent.name} :{regex.pattern}\n{file.name}:{new_path}"
                             )
-                            time.sleep(0.5)
-                    except Exception as e:
-                        logger.info(
-                            f"重命名文件失败：{e} \n{torrent.name} :{regex.pattern}\n{file.name}:{new_path}"
-                        )
 
 
 def cancel_downloading_files_with_extension(client, file_extensions):
@@ -280,7 +293,7 @@ def main():
             cancel_downloading_matching_regex(client, cancel_download_list)
             replace_folders_name(client, replace_list)
             rename_torrent_name(client)
-            # rename_files(client, replace_list)
+            rename_files(client, replace_list)
 
         finally:
             disconnect_from_qbittorrent(client)
