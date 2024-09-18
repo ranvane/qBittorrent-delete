@@ -271,7 +271,7 @@ def rename_torrent_name(client, replace_list):
                     # 将种子名替换为根文件夹的中文字符串
 
                     client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} \n\t{e}")
+                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} ")
                     time.sleep(0.5)
                     return
                 except Exception as e:
