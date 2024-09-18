@@ -225,61 +225,79 @@ def cancel_downloading_matching_regex(client, cancel_download_list):
                         time.sleep(0.1)
 
 
-def rename_torrent_name(client):
+def rename_torrent_name(client, replace_list):
     """
     重命名种子名
     此函数的目的是遍历qbittorrent客户端中的所有种子，找到每个种子中优先级大于0的文件，
     并以该文件的文件名（不包括扩展名）作为新的种子名。如果新种子名与原种子名不同，则进行重命名操作。
     """
     logger.info("重命名种子名...")
+    replace_regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_list]
     for torrent in client.torrents.info():
         tmp_name = ""
         torrent_name = torrent.name
+
         for file in torrent.files:
             if file.priority > 0:  # 优先级大于0的文件
                 p = Path(file.name)
-                tmp_name = p.parts[0]
+                tmp_name = p.parts[0].replace("/", "")
 
+        # 1、使用正则表达式处理种子名字符,去除特定的字符
+        for regex in replace_regex_list:
+            torrent_name = re.sub(regex, "", torrent_name)
+        if torrent_name != torrent.name:
+            logger.info(f"重命名种子：{torrent.name} -> {torrent_name}")
+            try:
+                client.torrents_rename(torrent.hash, new_torrent_name=torrent_name)
+            except Exception as e:
+                logger.info(f"重命名种子失败：{e} \n{torrent.name} -> {torrent_name}")
+
+        # 2、使用正则表达式处理种子根文件夹名字符,去除特定的字符
+        for regex in replace_regex_list:
+            tmp_name = re.sub(regex, "", tmp_name)
+        # 3、比对根文件夹和种子名中文字符数，那个长度大，则替换对方
         if torrent_name != tmp_name:
             tmp_name_chinese_characters = extract_chinese_characters(tmp_name)
             torrent_name_chinese_characters = extract_chinese_characters(torrent_name)
 
             # 如果 根文件夹的中文字符数大于种子名中文字符数，则替换种子名
             if (
-                len(tmp_name_chinese_characters) > len(torrent_name_chinese_characters)
+                len(tmp_name_chinese_characters) >= len(torrent_name_chinese_characters)
                 and len(tmp_name_chinese_characters) > 0
             ):
 
                 try:
-                    logger.info(
-                        f"重命名种子：{torrent.name} -> {tmp_name_chinese_characters}"
-                    )
-                    client.torrents_rename(
-                        torrent.hash, new_torrent_name=tmp_name_chinese_characters
-                    )
+                    logger.info(f"重命名种子：{torrent.name} -> {tmp_name}")
+                    # 将种子名替换为根文件夹的中文字符串
+
+                    client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
+                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} \n\t{e}")
                     time.sleep(0.5)
+                    return
                 except Exception as e:
                     logger.info(
-                        f"重命名种子:{torrent.name} -> {tmp_name_chinese_characters} 失败:{e}"
+                        f"重命名种子失败:\n\t{torrent.name} -> {tmp_name} \n\t{e}"
                     )
 
             elif (
                 len(tmp_name_chinese_characters) < len(torrent_name_chinese_characters)
                 and len(torrent_name_chinese_characters) > 0
             ):
-                # 如果 根文件夹的中文字符数小于种子名中文字符数，则种子名使用种子名替换根文件名
-
+                # 如果 根文件夹的中文字符数小于种子名中文字符数，
+                # 使用种子名替换根文件名
                 try:
                     client.torrents_rename_folder(
                         torrent_hash=torrent.hash,
                         old_path=p.parts[0],
-                        new_path=torrent_name_chinese_characters,
+                        new_path=torrent_name,
                     )
+                    logger.info(f"重命名种子:\n\t{torrent.name} -> {torrent_name} ")
                     time.sleep(0.5)
+                    return
                 except Exception as e:
                     # logger.info(f"重命名文件夹失败：{e}")
                     logger.info(
-                        f"种子{torrent_name}重命名:{p.parts[0]} -> {torrent_name_chinese_characters} 失败"
+                        f"种子{torrent_name}重命名失败:\n\t{p.parts[0]} -> {torrent_name}\n\t{e}"
                     )
 
 
@@ -290,9 +308,9 @@ def main():
         try:
 
             cancel_downloading_files_with_extension(client, file_extensions)
-            cancel_downloading_matching_regex(client, cancel_download_list)
+            # cancel_downloading_matching_regex(client, cancel_download_list)
             replace_folders_name(client, replace_list)
-            rename_torrent_name(client)
+            rename_torrent_name(client, replace_list)
             rename_files(client, replace_list)
 
         finally:
