@@ -3,6 +3,14 @@
 # d 文件夹
 search_dir=/vol1/1000/download/complete/
 
+find "$search_dir" -type f -name '*❤.jpg*' -exec rm -rf {} \;
+
+find "$search_dir" -type f -name '*❤.png*' -exec rm -rf {} \;
+
+find "$search_dir" -type f -name '*❤.gif*' -exec rm -rf {} \;
+
+find "$search_dir" -type f -name '*蜜桃影像传媒.png*' -exec rm -rf {} \;
+
 find "$search_dir" -type f -name '*性福源泉*' -exec rm -rf {} \;
 find "$search_dir" -type d -name '*性福源泉*' -exec rm -rf {} \;
 

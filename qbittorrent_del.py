@@ -21,7 +21,7 @@ completed_dir = "/vol1/1000/download/complete/"
 # 连接到 qBittorrent 客户端
 def connect_to_qbittorrent():
     client = qbittorrentapi.Client(
-        host="192.168.31.200", port=8080, username="ranvane", password="fjgh1148028"
+        host="192.168.10.200", port=8080, username="ranvane", password="fjgh1148028"
     )
     try:
         client.auth_log_in()
@@ -271,7 +271,7 @@ def rename_torrent_name(client, replace_list):
                     # 将种子名替换为根文件夹的中文字符串
 
                     client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} ")
+                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} \n\t{e}")
                     time.sleep(0.5)
                     return
                 except Exception as e:
@@ -301,6 +301,52 @@ def rename_torrent_name(client, replace_list):
                     )
 
 
+def set_excluded_file_names():
+    """
+    连接到 qBittorrent 客户端，获取排除文件名列表，并将其与本地文件中的排除文件名合并。
+    合并后的列表将被设置为 qBittorrent 的新排除文件名列表，并保存到本地文件中。
+
+    异常处理：
+    - 如果连接到 qBittorrent 客户端失败，记录错误信息并返回。
+    - 如果获取或设置排除文件名列表时发生异常，记录错误信息并返回。
+
+    返回：
+    - 成功时记录成功信息，失败时记录错误信息。
+    """
+    client = connect_to_qbittorrent()
+    if client:
+        try:
+            qb_excluded_file_names = client.app_preferences()["excluded_file_names"]
+            if not qb_excluded_file_names:
+                qb_excluded_file_names = []
+            else:
+                qb_excluded_file_names = [
+                    name.strip() for name in qb_excluded_file_names.split("\n")
+                ]
+            with open("排除的文件名.txt", "r", encoding="utf-8") as file:
+                lines = file.readlines()
+                # 去除每行末尾的换行符并生成列表
+                file_excluded_file_names = [line.strip() for line in lines]
+
+            new_excluded_file_names = []
+            for item in qb_excluded_file_names + file_excluded_file_names:
+                if item not in new_excluded_file_names:
+                    new_excluded_file_names.append(item)
+            new_excluded_file_names = "\n".join(new_excluded_file_names)
+
+            client.app_set_preferences({"excluded_file_names": new_excluded_file_names})
+
+            with open("排除的文件名.txt", "w", encoding="utf-8") as file:
+                file.writelines(new_excluded_file_names)
+
+            logger.info("成功设置排除的文件名功能")
+
+        except Exception as e:
+            logger.info(f"设置排除的文件名功能失败：{e}")
+        finally:
+            disconnect_from_qbittorrent(client)
+
+
 def main():
 
     client = connect_to_qbittorrent()
@@ -312,6 +358,7 @@ def main():
             replace_folders_name(client, replace_list)
             rename_torrent_name(client, replace_list)
             rename_files(client, replace_list)
+            set_excluded_file_names()
 
         finally:
             disconnect_from_qbittorrent(client)
