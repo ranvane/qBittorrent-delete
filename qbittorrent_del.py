@@ -353,12 +353,13 @@ def main():
     if client:
         try:
 
-            cancel_downloading_files_with_extension(client, file_extensions)
-            # cancel_downloading_matching_regex(client, cancel_download_list)
-            replace_folders_name(client, replace_list)
-            rename_torrent_name(client, replace_list)
-            rename_files(client, replace_list)
-            set_excluded_file_names()
+            # cancel_downloading_files_with_extension(client, file_extensions)
+            # # cancel_downloading_matching_regex(client, cancel_download_list)
+            # replace_folders_name(client, replace_list)
+            # rename_torrent_name(client, replace_list)
+            # rename_files(client, replace_list)
+            # set_excluded_file_names()
+            gen_del_bash()
 
         finally:
             disconnect_from_qbittorrent(client)
@@ -366,18 +367,18 @@ def main():
 
 def gen_del_bash():
     bash_list = []
-    for str in cancel_download_list:
+    with open("排除的文件名.txt", "r", encoding="utf-8") as file:
+        lines = file.readlines()
+        # 去除每行末尾的换行符并生成列表
+        file_excluded_file_names = [line.strip() for line in lines]
+    for str in file_excluded_file_names:
+
         _str = f"find {completed_dir} -type f -name '{str}'"
         _str = _str.replace(".*", "*")
         bash_list.append(_str + r" -exec rm -rf {} \;")
 
         _str = f"find {completed_dir} -type d -name '{str}'"
         _str = _str.replace(".*", "*")
-        bash_list.append(_str + r" -exec rm -rf {} \;")
-
-    for extension in file_extensions:
-
-        _str = f"find {completed_dir} -type f -name '*{extension[1:]}'"
         bash_list.append(_str + r" -exec rm -rf {} \;")
 
     with open("qb_del.sh", "w") as file:
@@ -387,7 +388,7 @@ def gen_del_bash():
             try:
                 file.write(item + "\n")
             except Exception as e:
-                logger.info(item)
+                logger.info(e)
 
 
 if __name__ == "__main__":
