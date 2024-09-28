@@ -353,12 +353,12 @@ def main():
     if client:
         try:
 
-            # cancel_downloading_files_with_extension(client, file_extensions)
-            # # cancel_downloading_matching_regex(client, cancel_download_list)
-            # replace_folders_name(client, replace_list)
-            # rename_torrent_name(client, replace_list)
-            # rename_files(client, replace_list)
-            # set_excluded_file_names()
+            cancel_downloading_files_with_extension(client, file_extensions)
+            # cancel_downloading_matching_regex(client, cancel_download_list)
+            replace_folders_name(client, replace_list)
+            rename_torrent_name(client, replace_list)
+            rename_files(client, replace_list)
+            set_excluded_file_names()
             gen_del_bash()
 
         finally:
@@ -381,14 +381,14 @@ def gen_del_bash():
         _str = _str.replace(".*", "*")
         bash_list.append(_str + r" -exec rm -rf {} \;")
 
-    with open("qb_del.sh", "w") as file:
+    with open("qb_del.sh", "w", errors="ignore") as file:
 
         file.write("#!/bin/bash" + "\n\n")
         for item in bash_list:
             try:
                 file.write(item + "\n")
             except Exception as e:
-                logger.info(e)
+                logger.info(f"{e}:{item}")
 
 
 if __name__ == "__main__":
@@ -397,4 +397,3 @@ if __name__ == "__main__":
     # 0 */1 * * * bash /opt/qbittorrentee/rename.sh
 
     main()
-    # gen_del_bash()
