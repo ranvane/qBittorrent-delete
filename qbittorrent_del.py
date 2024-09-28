@@ -288,7 +288,7 @@ def rename_torrent_name(client, replace_list):
                 try:
                     client.torrents_rename_folder(
                         torrent_hash=torrent.hash,
-                        old_path=p.parts[0],
+                        old_path=torrent.name,
                         new_path=torrent_name,
                     )
                     logger.info(f"重命名种子:\n\t{torrent.name} -> {torrent_name} ")
@@ -297,7 +297,7 @@ def rename_torrent_name(client, replace_list):
                 except Exception as e:
                     # logger.info(f"重命名文件夹失败：{e}")
                     logger.info(
-                        f"种子{torrent_name}重命名失败:\n\t{p.parts[0]} -> {torrent_name}\n\t{e}"
+                        f"种子{torrent_name}重命名失败:\n\t{torrent.name} -> {torrent_name}\n\t{e}"
                     )
 
 
