@@ -15,6 +15,8 @@ from regex_pattern import (
     image_suffix_pattern,
 )
 
+
+BASE_DIR = os.path.dirname(__file__)
 completed_dir = "/vol1/1000/download/complete/"
 
 
@@ -91,6 +93,7 @@ def replace_folders_name(client, replace_str_list):
                     logger.error(
                         f"重命名文件夹失败：\n {torrent.name}  \n`{p.parts[0]}`->`{new_folder_path}` \n{e}"
                     )
+                    break
 
 
 # 重命名包含指定字符串的文件
@@ -162,6 +165,7 @@ def rename_files(client, replace_str_list):
                             logger.info(
                                 f"重命名文件失败：{e} \n{torrent.name} :{regex.pattern}\n{file.name}:{new_path}"
                             )
+                            break
 
 
 def cancel_downloading_files_with_extension(client, file_extensions):
@@ -323,7 +327,8 @@ def set_excluded_file_names():
                 qb_excluded_file_names = [
                     name.strip() for name in qb_excluded_file_names.split("\n")
                 ]
-            with open("排除的文件名.txt", "r", encoding="utf-8") as file:
+            excluded_file_path=os.path.join(BASE_DIR,"排除的文件名.txt")
+            with open(excluded_file_path, "r", encoding="utf-8") as file:
                 lines = file.readlines()
                 # 去除每行末尾的换行符并生成列表
                 file_excluded_file_names = [line.strip() for line in lines]
@@ -336,7 +341,7 @@ def set_excluded_file_names():
 
             client.app_set_preferences({"excluded_file_names": new_excluded_file_names})
 
-            with open("排除的文件名.txt", "w", encoding="utf-8") as file:
+            with open(excluded_file_path, "w", encoding="utf-8") as file:
                 file.writelines(new_excluded_file_names)
 
             logger.info("成功设置排除的文件名功能")
@@ -367,7 +372,10 @@ def main():
 
 def gen_del_bash():
     bash_list = []
-    with open("排除的文件名.txt", "r", encoding="utf-8") as file:
+    excluded_file_path=os.path.join(BASE_DIR,"排除的文件名.txt")
+    
+    with open(excluded_file_path, "r", encoding="utf-8") as file:
+
         lines = file.readlines()
         # 去除每行末尾的换行符并生成列表
         file_excluded_file_names = [line.strip() for line in lines]
