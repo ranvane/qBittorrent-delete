@@ -5,6 +5,8 @@ import time
 import re
 from pathlib import Path
 from loguru import logger
+import random
+import string
 
 
 from regex_pattern import (
@@ -39,7 +41,7 @@ def disconnect_from_qbittorrent(client):
         client.auth_log_out()
         logger.info("已断开与 qBittorrent 客户端的连接")
     except Exception as e:
-        logger.info(f"断开与 qBittorrent 客户端的连接失败：{e}")
+        logger.error(f"断开与 qBittorrent 客户端的连接失败：{e}")
 
 
 def extract_chinese_characters(text):
@@ -52,6 +54,14 @@ def extract_chinese_characters(text):
     pattern = re.compile(r"[\u4e00-\u9fa5]")
     chinese_chars = pattern.findall(text)
     return "".join(chinese_chars)
+
+
+def generate_random_string(length=3):
+    # 定义包含所有数字和字母的字符集
+    characters = string.ascii_letters + string.digits
+    # 使用random.choices生成随机字符列表，然后将其连接成字符串
+    random_string = "".join(random.choices(characters, k=length))
+    return random_string
 
 
 # 重命名包含指定字符串的文件夹
@@ -91,7 +101,7 @@ def replace_folders_name(client, replace_str_list):
                         time.sleep(0.5)
                 except Exception as e:
                     logger.error(
-                        f"重命名文件夹失败：\n {torrent.name}  \n`{p.parts[0]}`->`{new_folder_path}` \n{e}"
+                        f"种子《{torrent.name}》重命名文件夹失败：  \n`{p.parts[0]}` -> `{new_folder_path}` \n{e}"
                     )
                     break
 
@@ -132,21 +142,26 @@ def rename_files(client, replace_str_list):
                     file_path = file.name.split(r"/")
                     filename = file_path[-1]
                     # logger.info(
-                    #     f"{torrent.name}\n文件路径：{file_path},\n文件名：{filename},\n后缀名：{p.suffix}"
+                    #     f"《{torrent.name}》\n文件路径：{file_path},\n文件名：{filename},\n后缀名：{p.suffix}"
                     # )
                     if re.search(regex, filename):
 
                         new_name = re.sub(regex, "", filename).strip()
+                        # 检查新文件名是否为空
+                        if new_name == "":
+                            continue
+                        # 检查新文件名中是否没有点号,如果没有点号，生成一个随机字符串,
+                        # 将文件路径的前部分与随机字符串和新文件名连接起来
+                        if "." not in new_name:
+
+                            new_name = (
+                                separator.join(file_path[:-1])
+                                + generate_random_string()
+                                + "."
+                                + new_name
+                            )
 
                         new_path = separator.join(file_path[:-1]) + separator + new_name
-                        # new_path = os.path.join(*file_path[:-1], new_name)
-
-                        # logger.info(
-                        #     f"重命名包含指定字符串的文件：\n\t原文件名：{filename}\n\t新文件名：{new_name} \n\t{regex.pattern}"
-                        # )
-                        # logger.info(
-                        #     f"\n{torrent.name}\n\t新文件路径：{new_path}，\n\t新文件名：{new_name}\n\t{regex.pattern}"
-                        # )
 
                         try:
 
@@ -157,15 +172,15 @@ def rename_files(client, replace_str_list):
                                     old_path=file.name,
                                     new_path=new_path,
                                 )
-                                # logger.info(
-                                #     f"重命名文件成功：\n\t{torrent.name} :\n\t{file.name}\n\t{new_path}"
-                                # )
-                                time.sleep(0.5)
+                                logger.info(
+                                    f"重命名种子：《{torrent.name}》的文件：\n{file.name} -> \n{new_path}"
+                                )
+                                time.sleep(0.2)
                         except Exception as e:
-                            logger.info(
-                                f"重命名文件失败：{e} \n{torrent.name} :{regex.pattern}\n{file.name}:{new_path}"
+                            logger.error(
+                                f"重命名种子：《{torrent.name}》的文件 :\n 使用正则表达式：{regex.pattern}\n{file.name} -> {new_path}\n失败：\n{e}"
                             )
-                            break
+                            return
 
 
 def cancel_downloading_files_with_extension(client, file_extensions):
@@ -195,7 +210,7 @@ def cancel_downloading_files_with_extension(client, file_extensions):
                         client.torrents_file_priority(torrent.hash, file.index, 0)
                         time.sleep(0.5)
                     except Exception as e:
-                        logger.info(f"取消下载：{file.name} 失败！{e} ")
+                        logger.error(f"取消下载：{file.name} 失败！{e} ")
 
 
 def cancel_downloading_matching_regex(client, cancel_download_list):
@@ -250,11 +265,13 @@ def rename_torrent_name(client, replace_list):
         for regex in replace_regex_list:
             torrent_name = re.sub(regex, "", torrent_name)
         if torrent_name != torrent.name:
-            logger.info(f"重命名种子：{torrent.name} -> {torrent_name}")
+            logger.info(f"重命名种子：《{torrent.name}》 -> {torrent_name}")
             try:
                 client.torrents_rename(torrent.hash, new_torrent_name=torrent_name)
             except Exception as e:
-                logger.info(f"重命名种子失败：{e} \n{torrent.name} -> {torrent_name}")
+                logger.error(
+                    f"重命名种子失败：{e} \n《{torrent.name}》 -> {torrent_name}"
+                )
 
         # 2、使用正则表达式处理种子根文件夹名字符,去除特定的字符
         for regex in replace_regex_list:
@@ -269,16 +286,18 @@ def rename_torrent_name(client, replace_list):
                 and len(tmp_name_chinese_characters) > 0
             ):
                 try:
-                    logger.info(f"重命名种子：{torrent.name} -> {tmp_name}")
+                    logger.info(f"重命名种子：《{torrent.name}》 -> {tmp_name}")
                     # 将种子名替换为根文件夹的中文字符串
 
                     client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} \n\t{e}")
+                    logger.info(
+                        f"重命名种子:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
+                    )
                     time.sleep(0.5)
                     return
                 except Exception as e:
-                    logger.info(
-                        f"重命名种子失败:\n\t{torrent.name} -> {tmp_name} \n\t{e}"
+                    logger.error(
+                        f"重命名种子失败:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
                     )
             if (
                 len(torrent_name_chinese_characters) > 0
@@ -291,14 +310,14 @@ def rename_torrent_name(client, replace_list):
                         new_path=tmp_name,
                     )
                     logger.info(
-                        f"重命名种子文件夹:\n\t{torrent.name} -> {torrent_name} "
+                        f"重命名种子文件夹:\n\t《{torrent.name}》 -> {torrent_name} "
                     )
                     time.sleep(0.5)
                     return
                 except Exception as e:
-                    # logger.info(f"重命名文件夹失败：{e}")
-                    logger.info(
-                        f"种子{torrent_name}文件夹重命名失败:\n\t{torrent.name} -> {tmp_name}\n\t{e}"
+
+                    logger.error(
+                        f"种子{torrent_name}文件夹重命名失败:\n\t《{torrent.name}》 -> {tmp_name}\n\t{e}"
                     )
 
             # 如果 根文件夹的中文字符数大于种子名中文字符数，则替换种子名
@@ -308,19 +327,19 @@ def rename_torrent_name(client, replace_list):
             ):
 
                 try:
-                    logger.info(f"重命名种子：{torrent.name} -> {tmp_name}")
+                    logger.info(f"重命名种子：《{torrent.name}》 -> {tmp_name}")
                     # 将种子名替换为根文件夹的中文字符串
 
                     client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} \n\t{e}")
+                    logger.info(f"重命名种子:\n\t《{torrent.name}》 -> {tmp_name} \n")
                     time.sleep(0.5)
                     return
                 except Exception as e:
-                    logger.info(
-                        f"重命名种子失败:\n\t{torrent.name} -> {tmp_name} \n\t{e}"
+                    logger.error(
+                        f"重命名种子失败:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
                     )
 
-            elif (
+            if (
                 len(tmp_name_chinese_characters) < len(torrent_name_chinese_characters)
                 and len(torrent_name_chinese_characters) > 0
             ):
@@ -329,16 +348,16 @@ def rename_torrent_name(client, replace_list):
                 try:
                     client.torrents_rename_folder(
                         torrent_hash=torrent.hash,
-                        old_path=torrent.name,
-                        new_path=tmp_name,
+                        old_path=tmp_name,
+                        new_path=torrent.name,
                     )
-                    logger.info(f"重命名种子:\n\t{torrent.name} -> {tmp_name} ")
+                    logger.info(f"重命名种子:\n\t {tmp_name} ->  《{torrent.name}》 ")
                     time.sleep(0.5)
                     return
                 except Exception as e:
-                    # logger.info(f"重命名文件夹失败：{e}")
-                    logger.info(
-                        f"种子{torrent_name}重命名失败:\n\t{torrent.name} -> {tmp_name}\n\t{e}"
+
+                    logger.error(
+                        f"种子:{torrent_name}重命名失败:\n\t{tmp_name} ->  《{torrent.name}》\n\t{e}"
                     )
 
 
@@ -384,7 +403,7 @@ def set_excluded_file_names():
             logger.info("成功设置排除的文件名功能")
 
         except Exception as e:
-            logger.info(f"设置排除的文件名功能失败：{e}")
+            logger.error(f"设置排除的文件名功能失败：{e}")
         finally:
             disconnect_from_qbittorrent(client)
 
@@ -433,7 +452,7 @@ def gen_del_bash():
             try:
                 file.write(item + "\n")
             except Exception as e:
-                logger.info(f"{e}:{item}")
+                logger.error(f"{e}:{item}")
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ image_suffix_pattern = (
     )
     + ")"
 )
+
 # 定义域名后缀的正则表达式片段
 domain_suffix_pattern = (
     r"\.(?:"
@@ -55,8 +56,8 @@ file_extensions = [
 # * 零次或多次 + 至少一次 ？ 最多匹配一次
 
 replace_list = [
-    r"^\d{1,6}" + domain_suffix_pattern,
-    r"^[a-zA-Z0-9]{1,6}" + domain_suffix_pattern,
+    r"^\d{1,7}" + domain_suffix_pattern,
+    r"^[a-zA-Z0-9]{1,7}" + domain_suffix_pattern,
     # r"^\d{1,5}",
     r"\(同城美女.{1,20}\)",
     r"【.*】",
@@ -69,8 +70,11 @@ replace_list = [
     r"^-",
     r"-$",
     r"^,",
+    r",$",
     r"^，",
+    r"，$",
     r"^\.",
+    r"\.$",
     r"^ ",
     r"^\-",
     r"^_",
@@ -89,6 +93,15 @@ replace_list = [
     r"國產網紅全系列",
     r"免費國產網黃線上播放",
     r"國產網黃線上播放",
+    r"\d{4}年\d{1,2}月",
+    r"麻豆BT",
+    r"最新域名",
+    r"（出资元 看简界）",
+    r"（出资元）",
+    r"（简阶出完整版全集）",
+    r"終極合集推薦",
+    r"橫屏視頻",
+    r"最新網黃資源下載",
 ]
 
 # 取消下载正则表达式字符串
