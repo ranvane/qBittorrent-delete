@@ -2,8 +2,8 @@ git config --global user.email "ranvane@gmail.com"
 git config --global user.name "ranvane"
 echo  "设置Git代理"
 # 设置http、https::
-git config --global http.proxy http://127.0.0.1:7899
-git config --global https.proxy https://127.0.0.1:7899
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy https://127.0.0.1:7890
 # 设置socks:
 git config --global http.proxy 'socks5://127.0.0.1:7890'
 git config --global https.proxy 'socks5://127.0.0.1:7890'
