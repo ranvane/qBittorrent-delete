@@ -276,7 +276,25 @@ def rename_torrent_name(client, replace_list):
         # 2、使用正则表达式处理种子根文件夹名字符,去除特定的字符
         for regex in replace_regex_list:
             tmp_name = re.sub(regex, "", tmp_name)
-        # 3、比对根文件夹和种子名中文字符数，那个长度大，则替换对方
+        # 3、如果根文件夹长度为0，则替换为不为零的另一项
+        if tmp_name == "":
+            try:
+                logger.info(
+                    f"重命名种子《{torrent.name}》 根文件夹为： -> {torrent.name}"
+                )
+                # 将根文件夹替换为种子名
+
+                client.torrents_rename(torrent.hash, new_torrent_name=torrent.name)
+                logger.info(
+                    f"重命名种子《{torrent.name}》根文件夹:\n {torrent.name} \n\t{e}"
+                )
+                time.sleep(0.5)
+                return
+            except Exception as e:
+                logger.error(
+                    f"重命名种子失败:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
+                )
+        # 4、比对根文件夹和种子名中文字符数，那个长度大，则替换对方
         if torrent_name != tmp_name:
             tmp_name_chinese_characters = extract_chinese_characters(tmp_name)
             torrent_name_chinese_characters = extract_chinese_characters(torrent_name)
