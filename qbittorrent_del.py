@@ -4,6 +4,7 @@ import os
 import time
 import re
 from pathlib import Path
+from pathlib import PurePosixPath
 from loguru import logger
 import random
 import string
@@ -73,11 +74,7 @@ def get_top_folder_name(torrent):
 
 
 def generate_random_string(length=3):
-    # 定义包含所有数字和字母的字符集
-    characters = string.ascii_letters + string.digits
-    # 使用random.choices生成随机字符列表，然后将其连接成字符串
-    random_string = "".join(random.choices(characters, k=length))
-    return random_string
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 # 重命名包含指定字符串的文件夹
@@ -125,80 +122,89 @@ def replace_folders_name(client, replace_str_list):
 
 
 # 重命名包含指定字符串的文件
-def rename_files(client, replace_str_list):
+def rename_files(client, replace_patterns, delay=0.2):
     """
-    重命名包含指定字符串的文件
+    重命名包含指定字符串的文件。
 
-    这个函数会遍历给定的qBittorrent客户端中的所有种子文件，并检查每个种子文件中的文件。
-    对于每个文件，如果文件名包含在replace_str_list中的任何字符串，函数将会替换这些字符串。
-    使用正则表达式来匹配字符串，并且忽略大小写。
+    遍历 qBittorrent 客户端中的所有种子文件，并对文件名进行替换操作。
+    使用正则表达式匹配文件名中的字符串（忽略大小写）。
 
     参数:
-    client: qBittorrent客户端对象，用于获取种子信息和执行操作。
-    replace_str_list: 一个正则表达式字符串列表，用于匹配文件名中的字符串。
+        client: qBittorrent 客户端对象，用于获取种子信息和执行操作。
+        replace_patterns: 正则表达式字符串列表，用于匹配文件名中需要替换的部分。
+        delay: 两次操作之间的延迟（默认 0.2 秒）。
 
     返回值:
-    无
-
-    异常:
-    如果在重命名文件过程中发生错误，它将会被捕获并作为异常抛出。
+        无
     """
-    logger.info("重命名包含指定字符串的文件...")
-    # 组合新的文件名和父文件夹路径
-    separator = "/"  # 指定的连接字符串
-    # 使用列表推导式批量编译这些正则表达式
-    regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_str_list]
+    # 如果没有提供任何正则表达式，则跳过文件重命名操作
+    if not replace_patterns:
+        logger.info("未提供任何正则表达式，跳过文件重命名操作。")
+        return
+
+    logger.info("开始重命名包含指定字符串的文件...")
+    # 编译正则表达式列表，忽略大小写
+    regex_list = [re.compile(pattern, re.IGNORECASE) for pattern in replace_patterns]
+
+    # 遍历所有种子
     for torrent in client.torrents.info():
+        # 遍历种子中的所有文件
         for file in torrent.files:
+            # 获取文件路径
+            file_path = Path(file.name)
 
-            p = Path(file.name)
-
-            if (
-                file.priority > 0 and len(p.suffix) > 0
-            ):  # 只替换优先级大于0的文件和有后缀名的文件
+            # 检查文件是否有优先级且有文件扩展名
+            if file.priority > 0 and file_path.suffix:
+                # 获取原始文件名
+                original_file_name = file_path.name
+                # 获取父目录路径
+                parent_directory = str(file_path.parent) if file_path.parent else "."
+                new_file_name = original_file_name
+                # 遍历正则表达式列表
                 for regex in regex_list:
-                    file_path = file.name.split(r"/")
-                    filename = file_path[-1]
-                    # logger.info(
-                    #     f"《{torrent.name}》\n文件路径：{file_path},\n文件名：{filename},\n后缀名：{p.suffix}"
-                    # )
-                    if re.search(regex, filename):
+                    # 使用正则表达式替换文件名中的指定字符串
+                    new_file_name = re.sub(regex, "", new_file_name).replace(" ", "")
 
-                        new_name = re.sub(regex, "", filename).strip()
-                        # 检查新文件名是否为空
-                        if new_name == "":
-                            continue
-                        # 检查新文件名中是否没有点号,如果没有点号，生成一个随机字符串,
-                        # 将文件路径的前部分与随机字符串和新文件名连接起来
-                        if "." not in new_name:
+                # 如果文件名替换后为空，则跳过该文件
+                if not new_file_name:
+                    logger.warning(f"文件名为空，跳过文件：{file.name}")
+                    continue
 
-                            new_name = (
-                                separator.join(file_path[:-1])
-                                + generate_random_string()
-                                + "."
-                                + new_name
-                            )
+                # 如果文件名替换后没有扩展名，则添加随机字符串和原文件扩展名
+                if "." not in new_file_name:
+                    new_file_name += generate_random_string() + file_path.suffix
 
-                        new_path = separator.join(file_path[:-1]) + separator + new_name
+                # # 构建新的文件路径
+                # new_file_path = str(Path(parent_directory) / new_file_name)
+                # 使用 PurePosixPath 构造新路径
+                new_file_path = str(PurePosixPath(parent_directory) / new_file_name)
 
-                        try:
+                # logger.info(
+                #     f"\nparent_directory:{parent_directory}\nnew_file_name:{new_file_name}\noriginal_file_name:{original_file_name}\n构建新的文件路径：{new_file_path}\n"
+                # )
 
-                            if new_name != filename:
-
-                                client.torrents_rename_file(
-                                    torrent_hash=torrent.hash,
-                                    old_path=file.name,
-                                    new_path=new_path,
-                                )
-                                logger.info(
-                                    f"重命名种子：《{torrent.name}》的文件：\n{file.name} -> \n{new_path}"
-                                )
-                                time.sleep(0.2)
-                        except Exception as e:
-                            logger.error(
-                                f"重命名种子：《{torrent.name}》的文件 :\n 使用正则表达式：{regex.pattern}\n{file.name} -> {new_path}\n失败：\n{e}"
-                            )
-                            return
+                try:
+                    # 如果新文件名与原始文件名不同，则重命名文件
+                    if new_file_name != original_file_name:
+                        client.torrents_rename_file(
+                            torrent_hash=torrent.hash,
+                            old_path=file.name,
+                            new_path=new_file_path,
+                        )
+                        logger.info(
+                            f"种子：《{torrent.name}》文件重命名：\n"
+                            f"{file.name} -> {new_file_path}"
+                        )
+                        # 延迟一段时间，避免频繁操作
+                        time.sleep(delay)
+                except Exception as e:
+                    # 如果重命名失败，记录错误信息并继续
+                    logger.error(
+                        f"重命名种子：《{torrent.name}》的文件失败：\n"
+                        f"文件路径：{file.name} -> {new_file_path}\n"
+                        f"正则表达式：{regex.pattern}\n错误：{e}"
+                    )
+                continue
 
 
 def cancel_downloading_files_with_extension(client, file_extensions):
@@ -305,7 +311,7 @@ def rename_torrent_name(client, replace_list):
                 _rename_torrent_folder(client, torrent, torrent_name)
 
 
-def _torrents_rename(client, torrent, new_torrent_name):
+def _torrents_rename(client, torrent, torrent_name):
     """
     将种子名替换为根文件夹的中文字符串
     """
@@ -313,19 +319,17 @@ def _torrents_rename(client, torrent, new_torrent_name):
 
         # 将种子名替换为根文件夹的中文字符串
         for regex in replace_regex_list:
-            new_torrent_name = re.sub(regex, "", new_torrent_name)
-        # 判断是否为空
-        if len(new_torrent_name) < 1:
+            torrent_name = re.sub(regex, "", torrent_name).replace(" ", "")
+        # 判断是否为空、是否和原种子名相同
+        if len(torrent_name) < 1 or torrent_name == torrent.name:
             return
 
-        client.torrents_rename(torrent.hash, new_torrent_name=new_torrent_name)
-        logger.info(f"重命名种子:\n\t《{torrent.name}》 -> {new_torrent_name} \n")
+        client.torrents_rename(torrent.hash, new_torrent_name=torrent_name)
+        logger.info(f"重命名种子:\n\t《{torrent.name}》 -> {torrent_name} \n")
         time.sleep(0.5)
         return
     except Exception as e:
-        logger.error(
-            f"重命名种子失败:\n\t《{torrent.name}》 -> {new_torrent_name} \n\t{e}"
-        )
+        logger.error(f"重命名种子失败:\n\t《{torrent.name}》 -> {torrent_name} \n\t{e}")
 
 
 def _rename_torrent_folder(client, torrent, torrent_folder):
@@ -417,12 +421,12 @@ def main():
         try:
 
             cancel_downloading_files_with_extension(client, file_extensions)
-            # cancel_downloading_matching_regex(client, cancel_download_list)
-            replace_folders_name(client, replace_list)
+            # # cancel_downloading_matching_regex(client, cancel_download_list)
+            # replace_folders_name(client, replace_list) # 被rename_torrent_name中的功能被包含了
             rename_torrent_name(client, replace_list)
             rename_files(client, replace_list)
             set_excluded_file_names()
-            gen_del_bash()
+            # gen_del_bash()
 
         finally:
             disconnect_from_qbittorrent(client)
