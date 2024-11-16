@@ -21,6 +21,8 @@ from regex_pattern import (
 BASE_DIR = os.path.dirname(__file__)
 completed_dir = "/vol1/1000/download/complete/"
 
+replace_regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_list]
+
 
 # 连接到 qBittorrent 客户端
 def connect_to_qbittorrent():
@@ -56,6 +58,20 @@ def extract_chinese_characters(text):
     return "".join(chinese_chars)
 
 
+def get_top_folder_name(torrent):
+    """
+    获取种子最顶级的文件夹
+    """
+    top_folder = ""
+    for file in torrent.files:
+        if file.priority > 0:  # 优先级大于0的文件
+            p = Path(file.name)
+            # tmp_name = p.parts[0].replace("/", "")
+            top_folder = p.parts[0]
+
+    return top_folder
+
+
 def generate_random_string(length=3):
     # 定义包含所有数字和字母的字符集
     characters = string.ascii_letters + string.digits
@@ -88,20 +104,22 @@ def replace_folders_name(client, replace_str_list):
             for regex in regex_list:
 
                 new_folder_path = re.sub(regex, "", top_folder)
-                new_folder_path = new_folder_path.strip()
+                if new_folder_path == top_folder:
+                    continue
 
+                new_folder_path = new_folder_path.replace(" ", "")
                 try:
-                    if new_folder_path != p.parts[0] and len(new_folder_path) > 0:
+                    if new_folder_path != top_folder and len(new_folder_path) > 0:
 
                         client.torrents_rename_folder(
                             torrent_hash=torrent.hash,
-                            old_path=p.parts[0],
+                            old_path=top_folder,
                             new_path=new_folder_path,
                         )
                         time.sleep(0.5)
                 except Exception as e:
                     logger.error(
-                        f"种子《{torrent.name}》重命名文件夹失败：  \n`{p.parts[0]}` -> `{new_folder_path}` \n{e}"
+                        f"种子《{torrent.name}》重命名文件夹失败：  \n使用正则表达式：{regex.pattern}\n`{top_folder}` -> `{new_folder_path}` \n{e}"
                     )
                     break
 
@@ -251,132 +269,98 @@ def rename_torrent_name(client, replace_list):
     并以该文件的文件名（不包括扩展名）作为新的种子名。如果新种子名与原种子名不同，则进行重命名操作。
     """
     logger.info("重命名种子名...")
-    replace_regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_list]
-    for torrent in client.torrents.info():
-        tmp_name = ""
-        torrent_name = torrent.name
 
+    # 1、首先处理种子名字
+    for torrent in client.torrents.info():
+        torrent_name = torrent.name
+        _torrents_rename(client, torrent, torrent_name)
+    # 2、处理种子根文件夹名
+    for torrent in client.torrents.info():
+        top_folder = ""
         for file in torrent.files:
             if file.priority > 0:  # 优先级大于0的文件
                 p = Path(file.name)
-                tmp_name = p.parts[0].replace("/", "")
+                # tmp_name = p.parts[0].replace("/", "")
+                top_folder = p.parts[0]
+        _rename_torrent_folder(client, torrent, top_folder)
 
-        # 1、使用正则表达式处理种子名字符,去除特定的字符
-        for regex in replace_regex_list:
-            torrent_name = re.sub(regex, "", torrent_name)
-        if torrent_name != torrent.name:
-            logger.info(f"重命名种子：《{torrent.name}》 -> {torrent_name}")
-            try:
-                client.torrents_rename(torrent.hash, new_torrent_name=torrent_name)
-            except Exception as e:
-                logger.error(
-                    f"重命名种子失败：{e} \n《{torrent.name}》 -> {torrent_name}"
-                )
+    # 3、处理种子根文件夹名和种子名中文字符数，那个长度大，则替换对方
+    for torrent in client.torrents.info():
+        top_folder_name = get_top_folder_name(torrent)  # 根文件夹名
+        torrent_name = torrent.name  # 种子名
 
-        # 2、使用正则表达式处理种子根文件夹名字符,去除特定的字符
-        for regex in replace_regex_list:
-            tmp_name = re.sub(regex, "", tmp_name)
-        # 3、如果根文件夹长度为0，则替换为不为零的另一项
-        if tmp_name == "":
-            try:
-                logger.info(
-                    f"重命名种子《{torrent.name}》 根文件夹为： -> {torrent.name}"
-                )
-                # 将根文件夹替换为种子名
-
-                client.torrents_rename(torrent.hash, new_torrent_name=torrent.name)
-                logger.info(
-                    f"重命名种子《{torrent.name}》根文件夹:\n {torrent.name} \n\t{e}"
-                )
-                time.sleep(0.5)
-                return
-            except Exception as e:
-                logger.error(
-                    f"重命名种子失败:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
-                )
-        # 4、比对根文件夹和种子名中文字符数，那个长度大，则替换对方
-        if torrent_name != tmp_name:
-            tmp_name_chinese_characters = extract_chinese_characters(tmp_name)
+        if torrent_name != top_folder_name:
+            top_folder_chinese_characters = extract_chinese_characters(top_folder_name)
             torrent_name_chinese_characters = extract_chinese_characters(torrent_name)
 
-            if (
-                len(torrent_name_chinese_characters) == 0
-                and len(tmp_name_chinese_characters) > 0
-            ):
-                try:
-                    logger.info(f"重命名种子：《{torrent.name}》 -> {tmp_name}")
-                    # 将种子名替换为根文件夹的中文字符串
-
-                    client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                    logger.info(
-                        f"重命名种子:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
-                    )
-                    time.sleep(0.5)
-                    return
-                except Exception as e:
-                    logger.error(
-                        f"重命名种子失败:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
-                    )
-            if (
-                len(torrent_name_chinese_characters) > 0
-                and len(tmp_name_chinese_characters) == 0
-            ):
-                try:
-                    client.torrents_rename_folder(
-                        torrent_hash=torrent.hash,
-                        old_path=torrent.name,
-                        new_path=tmp_name,
-                    )
-                    logger.info(
-                        f"重命名种子文件夹:\n\t《{torrent.name}》 -> {torrent_name} "
-                    )
-                    time.sleep(0.5)
-                    return
-                except Exception as e:
-
-                    logger.error(
-                        f"种子{torrent_name}文件夹重命名失败:\n\t《{torrent.name}》 -> {tmp_name}\n\t{e}"
-                    )
-
-            # 如果 根文件夹的中文字符数大于种子名中文字符数，则替换种子名
-            if (
-                len(tmp_name_chinese_characters) >= len(torrent_name_chinese_characters)
-                and len(tmp_name_chinese_characters) > 0
+            # 根文件夹的中文字符数大于种子名中文字符数，则替换种子名
+            if len(torrent_name_chinese_characters) < len(
+                top_folder_chinese_characters
             ):
 
-                try:
-                    logger.info(f"重命名种子：《{torrent.name}》 -> {tmp_name}")
-                    # 将种子名替换为根文件夹的中文字符串
+                _torrents_rename(client, torrent, top_folder_name)
+            elif len(torrent_name_chinese_characters) > len(
+                top_folder_chinese_characters
+            ):  # 根文件夹的中文字符数小于种子名中文字符数，则替换根文件夹名字为种子名
+                _rename_torrent_folder(client, torrent, torrent_name)
 
-                    client.torrents_rename(torrent.hash, new_torrent_name=tmp_name)
-                    logger.info(f"重命名种子:\n\t《{torrent.name}》 -> {tmp_name} \n")
-                    time.sleep(0.5)
-                    return
-                except Exception as e:
-                    logger.error(
-                        f"重命名种子失败:\n\t《{torrent.name}》 -> {tmp_name} \n\t{e}"
-                    )
 
-            if (
-                len(tmp_name_chinese_characters) < len(torrent_name_chinese_characters)
-                and len(torrent_name_chinese_characters) > 0
-            ):
-                # 如果 根文件夹的中文字符数小于种子名中文字符数，
-                # 使用种子名替换根文件名
-                try:
-                    client.torrents_rename_folder(
-                        torrent_hash=torrent.hash,
-                        old_path=tmp_name,
-                        new_path=torrent.name,
-                    )
-                    logger.info(f"重命名种子:\n\t {tmp_name} ->  《{torrent.name}》 ")
-                    time.sleep(0.5)
-                    return
-                except Exception as e:
+def _torrents_rename(client, torrent, new_torrent_name):
+    """
+    将种子名替换为根文件夹的中文字符串
+    """
+    try:
 
-                    logger.error(
-                        f"种子:{torrent_name}重命名失败:\n\t{tmp_name} ->  《{torrent.name}》\n\t{e}"
-                    )
+        # 将种子名替换为根文件夹的中文字符串
+        for regex in replace_regex_list:
+            new_torrent_name = re.sub(regex, "", new_torrent_name)
+        # 判断是否为空
+        if len(new_torrent_name) < 1:
+            return
+
+        client.torrents_rename(torrent.hash, new_torrent_name=new_torrent_name)
+        logger.info(f"重命名种子:\n\t《{torrent.name}》 -> {new_torrent_name} \n")
+        time.sleep(0.5)
+        return
+    except Exception as e:
+        logger.error(
+            f"重命名种子失败:\n\t《{torrent.name}》 -> {new_torrent_name} \n\t{e}"
+        )
+
+
+def _rename_torrent_folder(client, torrent, torrent_folder):
+    """
+    将根文件夹串替换为种子名字
+    """
+    try:
+        new_torrent_folder = torrent_folder
+        for regex in replace_regex_list:
+
+            new_torrent_folder = re.sub(regex, "", new_torrent_folder).replace(" ", "")
+
+        # 判断是否为空、是否和原种子名相同
+        if (
+            len(new_torrent_folder) < 1
+            or len(torrent_folder) < 1
+            or torrent_folder == new_torrent_folder
+        ):
+            return
+
+        client.torrents_rename_folder(
+            torrent_hash=torrent.hash,
+            old_path=torrent_folder,
+            new_path=new_torrent_folder,
+        )
+        logger.info(
+            f"将根文件夹串替换为种子名字:{torrent.name}\n\t {torrent_folder} ->  {new_torrent_folder} "
+        )
+        time.sleep(0.5)
+        return
+    except Exception as e:
+
+        logger.error(
+            f"种子:{torrent.name}重命名失败:\n\t{torrent_folder} ->  {new_name}\n\t{e}"
+        )
 
 
 def set_excluded_file_names():

@@ -56,12 +56,12 @@ file_extensions = [
 # * 零次或多次 + 至少一次 ？ 最多匹配一次
 
 replace_list = [
-    r"^\d{1,7}" + domain_suffix_pattern,
-    r"^[a-zA-Z0-9]{1,7}" + domain_suffix_pattern,
+    r"【.{3,20}】",
+    r"\[.{3,20}\]",
+    r"[a-zA-Z0-9]{1,7}" + domain_suffix_pattern,
+    r"\d{1,7}" + domain_suffix_pattern,
     # r"^\d{1,5}",
     r"\(同城美女.{1,20}\)",
-    r"【.*】",
-    r"\[.{3,15}\]",
     r"^\d{1,6}\s",  # \s匹配任何空白字符
     r"^\d{1,6}\.",
     r"^\d{1,6}_",
@@ -102,7 +102,7 @@ replace_list = [
     r"終極合集推薦",
     r"橫屏視頻",
     r"最新網黃資源下載",
-    r"[MP4]",
+    r"\[MP4\]",
 ]
 
 # 取消下载正则表达式字符串

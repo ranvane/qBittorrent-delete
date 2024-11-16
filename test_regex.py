@@ -74,36 +74,36 @@ def set_excluded_file_names():
 
 def test():
 
+    filename = "IPZZ-444 婚妇女的家庭美容院美丽的美容师 被她丑陋的邻居的猥亵鸡巴不断地射精 仲村みう  中字原創"
+    #     filename = filename.replace(" ", "")
+    #     # cancel_regex_list = [
+    #     #     re.compile(regex, re.IGNORECASE) for regex in cancel_download_list
+    #     # ]
+    #     # for regex in cancel_regex_list:
+    #     #     match = re.search(regex, filename)
+    #     #     if match:
+    #     #         print(f"cancel_download_list: {regex.pattern}")
+    #     # cancel_regex_list = [
+    #     #     re.compile(regex, re.IGNORECASE) for regex in cancel_download_list
+    #     # ]
+    #     # for regex in cancel_regex_list:
+    #     #     match = re.search(regex, filename)
+    #     #     if match:
+    #     #         print(f"cancel_download_list: {regex.pattern}")
 
-
-#     filename = "5277.-海角社区乱伦大神和40多岁如狼似虎的风骚丈母娘乱伦无套内射丈母娘屁眼，屎都艹出来了"
-#     filename = filename.replace(" ", "")
-#     # cancel_regex_list = [
-#     #     re.compile(regex, re.IGNORECASE) for regex in cancel_download_list
-#     # ]
-#     # for regex in cancel_regex_list:
-#     #     match = re.search(regex, filename)
-#     #     if match:
-#     #         print(f"cancel_download_list: {regex.pattern}")
-#     # cancel_regex_list = [
-#     #     re.compile(regex, re.IGNORECASE) for regex in cancel_download_list
-#     # ]
-#     # for regex in cancel_regex_list:
-#     #     match = re.search(regex, filename)
-#     #     if match:
-#     #         print(f"cancel_download_list: {regex.pattern}")
-
-#     replace_regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_list]
-#     # for regex in replace_regex_list:
-#     #     match = re.search(regex, filename)
-#     #     if match:
-#     #         new_name = re.sub(regex, "", filename).replace(" ", "").strip() #re.sub替换
-#     #         print(f"replace_list: {regex.pattern}")
-#     #         print(new_name)
-#     #         print(domain_suffix_pattern)
-#     regex = re.compile(r"^\d{1,6}\.", re.IGNORECASE)
-#     print(re.sub(regex, "", filename))
+    replace_regex_list = [re.compile(regex, re.IGNORECASE) for regex in replace_list]
+    for regex in replace_regex_list:
+        match = re.search(regex, filename)
+        if match:
+            new_name = (
+                re.sub(regex, "", filename).replace(" ", "").strip()
+            )  # re.sub替换
+            print(f"replace_list: {regex.pattern}")
+            print(new_name)
+            print(domain_suffix_pattern)
+    # regex = re.compile(r"^\d{1,6}\.", re.IGNORECASE)
+    # print(re.sub(regex, "", filename))
 
 
 if __name__ == "__main__":
-    set_excluded_file_names()
+    test()
