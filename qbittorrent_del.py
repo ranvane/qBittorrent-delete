@@ -87,7 +87,7 @@ def replace_folders_name(client, replace_str_list):
     replace_str_list（list of str）：包含要替换的字符串的列表，或者是用于匹配文件夹名称的正则表达式字符串列表。
 
     """
-    logger.info("重命名包含指定字符串的文件夹...")
+    logger.info("重命名包含指定字符串的文件夹（replace_folders_name）...")
     # 使用列表推导式批量编译这些正则表达式
     regex_list = [re.compile(regex) for regex in replace_str_list]
     for torrent in client.torrents.info():
@@ -274,21 +274,21 @@ def rename_torrent_name(client, replace_list):
     此函数的目的是遍历qbittorrent客户端中的所有种子，找到每个种子中优先级大于0的文件，
     并以该文件的文件名（不包括扩展名）作为新的种子名。如果新种子名与原种子名不同，则进行重命名操作。
     """
-    logger.info("重命名种子名...")
+    logger.info("重命名种子名(rename_torrent_name)...")
 
     # 1、首先处理种子名字
     for torrent in client.torrents.info():
         torrent_name = torrent.name
         _torrents_rename(client, torrent, torrent_name)
-    # 2、处理种子根文件夹名
-    for torrent in client.torrents.info():
-        top_folder = ""
-        for file in torrent.files:
-            if file.priority > 0:  # 优先级大于0的文件
-                p = Path(file.name)
-                # tmp_name = p.parts[0].replace("/", "")
-                top_folder = p.parts[0]
-        _rename_torrent_folder(client, torrent, top_folder)
+    # # 2、处理种子根文件夹名
+    # for torrent in client.torrents.info():
+    #     top_folder = ""
+    #     for file in torrent.files:
+    #         if file.priority > 0:  # 优先级大于0的文件
+    #             p = Path(file.name)
+    #             # tmp_name = p.parts[0].replace("/", "")
+    #             top_folder = p.parts[0]
+    #     # _rename_torrent_folder(client, torrent, top_folder, top_folder)
 
     # 3、处理种子根文件夹名和种子名中文字符数，那个长度大，则替换对方
     for torrent in client.torrents.info():
@@ -308,7 +308,7 @@ def rename_torrent_name(client, replace_list):
             elif len(torrent_name_chinese_characters) > len(
                 top_folder_chinese_characters
             ):  # 根文件夹的中文字符数小于种子名中文字符数，则替换根文件夹名字为种子名
-                _rename_torrent_folder(client, torrent, torrent_name)
+                _rename_torrent_folder(client, torrent, top_folder_name, torrent_name)
 
 
 def _torrents_rename(client, torrent, torrent_name):
@@ -332,12 +332,12 @@ def _torrents_rename(client, torrent, torrent_name):
         logger.error(f"重命名种子失败:\n\t《{torrent.name}》 -> {torrent_name} \n\t{e}")
 
 
-def _rename_torrent_folder(client, torrent, torrent_folder):
+def _rename_torrent_folder(client, torrent, old_torrent_folder, new_torrent_folder):
     """
     将根文件夹串替换为种子名字
     """
     try:
-        new_torrent_folder = torrent_folder
+
         for regex in replace_regex_list:
 
             new_torrent_folder = re.sub(regex, "", new_torrent_folder).replace(" ", "")
@@ -345,18 +345,18 @@ def _rename_torrent_folder(client, torrent, torrent_folder):
         # 判断是否为空、是否和原种子名相同
         if (
             len(new_torrent_folder) < 1
-            or len(torrent_folder) < 1
-            or torrent_folder == new_torrent_folder
+            or len(new_torrent_folder) < 1
+            or old_torrent_folder == new_torrent_folder
         ):
             return
 
         client.torrents_rename_folder(
             torrent_hash=torrent.hash,
-            old_path=torrent_folder,
+            old_path=old_torrent_folder,
             new_path=new_torrent_folder,
         )
         logger.info(
-            f"将根文件夹串替换为种子名字:{torrent.name}\n\t {torrent_folder} ->  {new_torrent_folder} "
+            f"将根文件夹串替换为种子名字:{torrent.name}\n\t {old_torrent_folder} ->  {new_torrent_folder} "
         )
         time.sleep(0.5)
         return
@@ -382,6 +382,14 @@ def set_excluded_file_names():
     client = connect_to_qbittorrent()
     if client:
         try:
+            # 所有配置写入文件中
+            # app_preferences = client.app_preferences()
+
+            # excluded_file_path = os.path.join(BASE_DIR, "配置文件.txt")
+            # with open(excluded_file_path, "w", encoding="utf-8") as file:
+            #     for key, value in app_preferences.items():
+            #         file.write(f"{key}: {value}\n")
+
             qb_excluded_file_names = client.app_preferences()["excluded_file_names"]
             if not qb_excluded_file_names:
                 qb_excluded_file_names = []
@@ -420,12 +428,12 @@ def main():
     if client:
         try:
 
-            cancel_downloading_files_with_extension(client, file_extensions)
+            # cancel_downloading_files_with_extension(client, file_extensions)
             # # cancel_downloading_matching_regex(client, cancel_download_list)
-            # replace_folders_name(client, replace_list) # 被rename_torrent_name中的功能被包含了
+            replace_folders_name(client, replace_list)
             rename_torrent_name(client, replace_list)
-            rename_files(client, replace_list)
-            set_excluded_file_names()
+            # rename_files(client, replace_list)
+            # set_excluded_file_names()
             # gen_del_bash()
 
         finally:
