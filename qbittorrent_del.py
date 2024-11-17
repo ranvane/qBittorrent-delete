@@ -428,12 +428,12 @@ def main():
     if client:
         try:
 
-            # cancel_downloading_files_with_extension(client, file_extensions)
+            cancel_downloading_files_with_extension(client, file_extensions)
             # # cancel_downloading_matching_regex(client, cancel_download_list)
             replace_folders_name(client, replace_list)
             rename_torrent_name(client, replace_list)
-            # rename_files(client, replace_list)
-            # set_excluded_file_names()
+            rename_files(client, replace_list)
+            set_excluded_file_names()
             # gen_del_bash()
 
         finally:
